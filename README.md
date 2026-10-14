@@ -10,6 +10,28 @@
 <h1 align="center">PhotoCraft</h1>
 
 <p align="center">
+  <b>Native Android image editing with a Procreate-inspired Painting Mode.</b><br>
+  This fork aims to keep PhotoCraft up to date with upstream while making painting on Android tablets comfortable with a pen and touch.
+</p>
+
+## Android Painting Mode
+
+Painting Mode gives the canvas more space, with compact toolbars, quick brush size and opacity controls, and brushes, colors and layers a tap away. Existing touch navigation stays available. Tap **Painting** to enter, or **Editor** to return to the full editing interface.
+
+[Android setup and builds](docs/android.md) · [Painting Mode details](docs/painting-mode.md) · [Upstream PhotoCraft](https://github.com/storytold/photocraft)
+
+![PhotoCraft Painting Mode on Android displaying The Great Wave, with compact toolbars and size and opacity sliders](docs/images/android-painting-canvas.png)
+
+| Brush library | Layers |
+|---|---|
+| ![Painting Mode brush library with brush previews, search and the reorder lock button](docs/images/android-painting-brushes.png) | ![Painting Mode layers panel beside The Great Wave canvas](docs/images/android-painting-layers.png) |
+| Scroll to browse and tap to select; unlock to rearrange. | Open layer controls without leaving Painting Mode. |
+
+Captured directly on a Samsung Galaxy Tab S6 running Android 12L. Artwork: *The Great Wave off Kanagawa*, Katsushika Hokusai, c. 1831; public domain via [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Tsunami_by_hokusai_19th_century.jpg). [Screenshot sources and licensing](docs/images/SOURCES.md).
+
+## About PhotoCraft
+
+<p align="center">
   <b>Image editing; an open-source, clean-room reimplementation of Adobe Photoshop, rebuilt in pure Rust.</b><br>
   Layers, masks, adjustment layers, layer styles, type, vectors, brushes and real PSD files,<br>
   in a native app written entirely in Rust. Open source, offline, and yours.
@@ -17,7 +39,7 @@
 
 <p align="center">
   <img alt="100% Rust" src="https://img.shields.io/badge/100%25-Rust-b7410e?style=flat-square&logo=rust">
-  <img alt="macOS · Windows · Linux · FreeBSD · Web" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux%20%C2%B7%20FreeBSD%20%C2%B7%20Web-native-2f7bf5?style=flat-square">
+  <img alt="Android · macOS · Windows · Linux · FreeBSD · Web" src="https://img.shields.io/badge/Android%20%C2%B7%20macOS%20%C2%B7%20Windows%20%C2%B7%20Linux%20%C2%B7%20FreeBSD%20%C2%B7%20Web-native-2f7bf5?style=flat-square">
   <img alt="License: MIT OR Apache-2.0" src="https://img.shields.io/badge/license-MIT%20%2F%20Apache--2.0-3a3a3a?style=flat-square">
   <img alt="Status: early alpha" src="https://img.shields.io/badge/status-early%20alpha-d69e2e?style=flat-square">
 </p>
@@ -84,7 +106,7 @@
 
 ## Features
 
-Every screenshot here is the real app at work on public-domain art, rendered offscreen through its control channel.
+The feature screenshots below show the real app at work on public-domain art, rendered offscreen through its control channel. The Android Painting Mode screenshots above were captured directly on the tablet.
 
 <table>
   <tr>

@@ -1,0 +1,16 @@
+Android Painting Mode screenshots
+
+Files: android-painting-canvas.png, android-painting-brushes.png,
+android-painting-layers.png
+
+PhotoCraft UI: PhotoCraft contributors, licensed under MIT OR Apache-2.0.
+See ../../LICENSE-MIT and ../../LICENSE-APACHE for the full license texts.
+
+Artwork: The Great Wave off Kanagawa, Katsushika Hokusai, c. 1831.
+The artwork and its faithful photographic reproduction are public domain
+as documented by Wikimedia Commons (PD-Art / PD-old-100-expired).
+Source: https://commons.wikimedia.org/wiki/File:Tsunami_by_hokusai_19th_century.jpg
+Image: https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Tsunami_by_hokusai_19th_century.jpg/1920px-Tsunami_by_hokusai_19th_century.jpg
+
+Screenshots captured directly from PhotoCraft on a Samsung Galaxy Tab S6
+running Android 12L on 2026-10-14. No proprietary Procreate assets are used.
