@@ -326,3 +326,33 @@ Validation: full UI suite passed serially (2,701 passed, 12 ignored), layers, wa
 `panic_hunt`, formatting and scoped Clippy passed. The parallel GPU integration test received
 SIGSEGV in the VM; both its isolated serial run and full serial rerun passed. Strict Clippy
 retains the pre-existing Raw `collapsible_match` blocker.
+
+### Upstream integration — 2026-10-14
+
+Integrated `storytold/photocraft` through `706638b2` (190 commits newer than the Android
+work's original base). Kept upstream brush persistence, canvas/rendering improvements,
+brush-card geometry fixes, translations and dependency pins alongside the native Android
+launcher, touch navigation and Painting Mode. The pre-integration source remains available
+locally as `backup/android-tested-2026-10-14` at `76d532bc`.
+
+The merged APK was installed on the Galaxy Tab S6 and exercised with native finger/pen
+input: brush unlock/reorder/relock, list scrolling, tool-toggle panel closure, pen painting,
+eyedropper cancellation and return to Brush on pen lift. Original document data, brush
+settings and the full library were preserved; the isolated test document was removed.
+Evidence and the previous APK are in `target/android-apk/evidence/upstream-integration/`
+(local, gitignored).
+
+Final validation: 4,628 engine/UI tests passed (31 intentionally ignored); the separate
+adversarial `panic_hunt` test passed. Layering, WebAssembly, formatting, parity and scorecard
+generation passed. The preference audit initially missed reads below a test-module declaration;
+moving Painting Mode's test declaration into the existing test section fixed the audit without
+changing app behavior. The VM required stripping debug sections from generated test binaries
+to fit the full suite; no repository build settings changed.
+
+Final APK SHA-256: `5d6d80f0b6bfbf642d674ecac9d14875df4a721b097103dfcaa4e422850ed7bb`.
+The final APK passed installation, cold restart and native lock/tool-toggle checks. The control
+listener was disabled and PhotoCraft was left open in Painting Mode.
+
+Scoped all-targets Clippy passed for engine/UI with the existing `collapsible_match` and
+`nonminimal_bool` categories allowed. Strict Clippy still stops at the pre-existing
+`crates/raw/src/cr3.rs:145` `collapsible_match` warning; source lint settings remain unchanged.

@@ -23,7 +23,7 @@ State is serialized in UiState; window.paintingMode validates optional enabled, 
 
 Eighteen Painting Mode tests, plus shared brush-list and folder-drag regressions, cover command validation, visible mode-button round trips, reversible layout, workspace selection, per-tool brush memory, actual control clicks, immediate slider updates, pen-lift sampling, full-screen restoration, Deselect, locked library order and scrolling, native caption space, transform cancellation, responsive geometry across 14 themes, and the existing Android touch/pen pipeline. Landscape and portrait screenshots were rendered offscreen and inspected.
 
-Validation on 2026-10-14: full ui-egui suite passed serially (2,701 tests, 12 ignored); layers, wasm, parity and engine panic_hunt passed. Strict Clippy encounters existing `collapsible_match` and `nonminimal_bool` findings outside the painting implementation. The crate-only all-targets check passes with those two lint categories allowed; source lint settings remain unchanged.
+Validation on 2026-10-14: full ui-egui suite passed serially (2,836 tests, 12 ignored); layers, wasm, parity and engine panic_hunt passed. Strict Clippy encounters existing `collapsible_match` and `nonminimal_bool` findings outside the painting implementation. The crate-only all-targets check passes with those two lint categories allowed; source lint settings remain unchanged.
 
 ## Scope boundary
 
