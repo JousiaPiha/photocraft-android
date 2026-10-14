@@ -3118,3 +3118,15 @@ curves	Smooth	Lisser
 	Step {step} is waiting for its dialog	L’étape {step} attend sa boîte de dialogue
 @plural	{n} action|{n} actions	{n} action|{n} actions
 	Auto Add/Delete	Ajout/suppr. auto
+
+	Paint with finger	Peindre avec le doigt
+
+# Painting mode
+	Editor	Éditeur
+	Return to editor	Retour à l’éditeur
+	Right-hand sidebar	Barre latérale à droite
+	Painting Mode	Mode peinture
+	Paint	Peindre
+	Strength	Intensité
+	Lock brush order	Verrouiller l’ordre des pinceaux
+	Unlock brush order	Déverrouiller l’ordre des pinceaux

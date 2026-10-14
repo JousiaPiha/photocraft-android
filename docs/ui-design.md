@@ -248,3 +248,23 @@ gives `90`. Shared value fields apply plain numbers live and arithmetic when edi
 finishes, preserving rounded/integer workflows. Field limits and integer rounding
 still apply; invalid expressions, division by zero, and non-finite results are rejected.
 Expressions are evaluated locally as arithmetic, never as scripts.
+
+## Painting mode
+
+Window → Painting Mode toggles canvas-focused painting chrome without changing the editor's
+panel layout. Window → Workspace → Painting also enters it; another workspace leaves it.
+A visible Painting button in the regular top bar enters the mode; Editor returns to the
+regular controls. On Android the entry button has a 44-point touch target. Paint, Smudge and Erase share access to the
+existing brush library (tap the active tool again); Layers and Color open on demand. Size and
+Opacity sit on the edge rail; Smudge shows Strength. Actions → Right-hand sidebar moves the
+rail. Painting Mode hides document tabs and canvas scrollbars and enters Full Screen Mode with
+Menu Bar; Editor restores the previous screen mode. The eyedropper toggles off or returns to
+Brush on pen lift. Selection exposes Deselect. Sliders use wide hit areas with immediate updates.
+Shared brush lists use tap-to-select and drag-to-scroll with order locked by default. A lock
+button beside Search Brushes enables drag organization. Painting Mode omits the brush
+library title/close row; tapping the active painting tool again closes it. Existing touch
+navigation and pen preferences continue to apply.
+
+Research, design and scope: [Painting mode](painting-mode.md). The implementation stays in
+`painting_mode.rs` at L6, uses theme tokens and existing icons, and keeps document operations
+on the existing engine command path.

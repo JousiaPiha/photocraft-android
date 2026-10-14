@@ -3876,3 +3876,14 @@ curves	Smooth	Vloeiend maken
 	Step {step} is waiting for its dialog	Stap {step} wacht op zijn dialoogvenster
 @plural	{n} action|{n} actions	{n} handeling|{n} handelingen
 	Auto Add/Delete	Automatisch toevoegen/verwijderen
+
+	Paint with finger	Schilderen met de vinger
+
+# Painting mode
+	Editor	Editor
+	Return to editor	Terug naar editor
+	Right-hand sidebar	Zijbalk rechts
+	Painting Mode	Schildermodus
+	Paint	Schilderen
+	Lock brush order	Penseelvolgorde vergrendelen
+	Unlock brush order	Penseelvolgorde ontgrendelen

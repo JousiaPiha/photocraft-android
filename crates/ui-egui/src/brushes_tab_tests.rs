@@ -265,3 +265,57 @@ fn the_brushes_tab_grid_is_centred_past_its_indent() {
     h.run_steps(6);
     rows_are_centred(&h, PANEL_LIST.indent, 2);
 }
+
+#[test]
+fn refinement_brush_rows_scroll_on_drag_and_select_on_one_tap() {
+    for (view, cards) in [(BrushesView::List, false), (BrushesView::Grid, false), (BrushesView::List, true)] {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        app.ui.brushes_panel.view = view;
+        let original = serde_json::to_value(&app.session.tools.presets).unwrap();
+        let selected = app.session.tools.current_preset.clone();
+        let mut h = Harness::builder().with_size(vec2(340.0, 280.0)).build_ui_state(
+            |ui, app: &mut PhotocraftApp| {
+                if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
+                    return;
+                }
+                let acts = preset_list(
+                    ui,
+                    &app.session.tools.presets,
+                    app.session.tools.current_preset.as_deref(),
+                    &mut app.ui.brushes_panel,
+                    ListLayout { id: "locked-brushes", max_height: 250.0, cards, ..PANEL_LIST },
+                );
+                apply(app, acts);
+            },
+            app,
+        );
+        PhotocraftApp::setup_context(&h.ctx, theme::ThemeKind::Studio);
+        h.run_steps(4);
+        let row = h.query_all_by_role(Role::Button).find(|n| n.rect().center().y > 130.0 && n.rect().bottom() < 240.0).unwrap();
+        let row_name = row.accesskit_node().label().unwrap().to_string();
+        let row = row.rect();
+        let start = row.center();
+        h.hover_at(start);
+        h.run_steps(1);
+        h.event(egui::Event::PointerButton { pos: start, button: egui::PointerButton::Primary, pressed: true, modifiers: egui::Modifiers::NONE });
+        h.run_steps(1);
+        for delta in [10.0, 30.0, 60.0, 90.0] {
+            h.hover_at(start - vec2(0.0, delta));
+            h.run_steps(1);
+        }
+        let end = start - vec2(0.0, 90.0);
+        h.event(egui::Event::PointerButton { pos: end, button: egui::PointerButton::Primary, pressed: false, modifiers: egui::Modifiers::NONE });
+        h.run_steps(2);
+        let after = h.query_all_by_role(Role::Button).find(|n| n.accesskit_node().label().as_deref() == Some(row_name.as_str())).unwrap().rect();
+        assert!(after.top() < row.top() - 40.0, "drag over a brush must scroll (cards={cards}, before={row:?}, after={after:?})");
+        assert_eq!(serde_json::to_value(&h.state().session.tools.presets).unwrap(), original, "drag must preserve order");
+        assert_eq!(h.state().session.tools.current_preset, selected, "scrolling must not select a brush");
+        // Stop inertia, then a single tap selects the visible brush.
+        h.run_steps(120);
+        let row = h.query_all_by_role(Role::Button).find(|n| n.rect().top() > 30.0 && n.rect().bottom() < 240.0).unwrap();
+        let name = row.accesskit_node().label().unwrap().to_string();
+        row.click();
+        h.run_steps(3);
+        assert_eq!(h.state().session.tools.current_preset.as_deref(), Some(name.as_str()));
+    }
+}

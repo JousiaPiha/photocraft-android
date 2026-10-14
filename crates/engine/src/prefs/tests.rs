@@ -623,3 +623,16 @@ fn shift_key_tool_switch_is_on_by_default_and_a_stored_false_is_kept() {
     let stored: Tools = serde_json::from_value(json!({"useShiftKeyForToolSwitch": false})).unwrap();
     assert!(!stored.use_shift_key_for_tool_switch);
 }
+
+#[test]
+fn finger_painting_preference_is_typed_persistent_and_backward_compatible() {
+    let mut s = Session::new();
+    assert_eq!(s.execute("prefs.get", json!({"path":"enhancedControls.paintWithFinger"})).unwrap(), json!(true));
+    s.execute("prefs.set", json!({"path":"enhancedControls.paintWithFinger", "value":false})).unwrap();
+    let mut restored = Session::new();
+    restored.load_prefs_json(&s.prefs_to_json()).unwrap();
+    assert_eq!(restored.execute("prefs.get", json!({"path":"enhancedControls.paintWithFinger"})).unwrap(), json!(false));
+    assert!(restored.execute("prefs.set", json!({"path":"enhancedControls.paintWithFinger", "value":"no"})).is_err());
+    restored.load_prefs_json(r#"{"enhancedControls":{"touchGestures":true}}"#).unwrap();
+    assert_eq!(restored.execute("prefs.get", json!({"path":"enhancedControls.paintWithFinger"})).unwrap(), json!(true));
+}

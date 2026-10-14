@@ -131,7 +131,7 @@ pub enum Outcome {
 /// field's value is validated before the first one is applied, so a typo, an unknown field, a
 /// bad value or a bad nested key can't reply with success while nothing — or only half of it —
 /// changed (#412).
-pub const UI_SET_FIELDS: [&str; 35] = [
+pub const UI_SET_FIELDS: [&str; 37] = [
     "tool",
     "panels",
     "dock",
@@ -149,6 +149,8 @@ pub const UI_SET_FIELDS: [&str; 35] = [
     "brushSection",
     "brushTab",
     "brushesView",
+    "brushesReorder",
+    "brushPickerReorder",
     "brushPicker",
     "brushPickerName",
     "brushPickerStroke",
@@ -577,6 +579,8 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                 };
                 let brush_section = uint_field(p, "brushSection")?;
                 let brush_tab = uint_field(p, "brushTab")?;
+                let brushes_reorder = bool_field(p, "brushesReorder")?;
+                let brush_picker_reorder = bool_field(p, "brushPickerReorder")?;
                 let brushes_view = match p.get("brushesView") {
                     Some(v) => serde_json::from_value(v.clone()).map(Some).map_err(|e| format!("brushesView: {e} (list, grid)"))?,
                     None => None,
@@ -747,6 +751,12 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                 }
                 if let Some(i) = brush_tab {
                     app.ui.brush_tab = (i as usize).min(1);
+                }
+                if let Some(v) = brushes_reorder {
+                    app.ui.brushes_panel.reorder = v;
+                }
+                if let Some(v) = brush_picker_reorder {
+                    app.ui.brush_picker_list.reorder = v;
                 }
                 if let Some(v) = brushes_view {
                     app.ui.brushes_panel.view = v;
@@ -1245,6 +1255,8 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
     json!({
         "window": {"width": screen.width(), "height": screen.height(), "pixelsPerPoint": ctx.pixels_per_point()},
         "tool": app.ui.tool,
+        "paintingMode": app.ui.painting,
+        "brushesPanel": app.ui.brushes_panel,
         "toolOptions": app.ui.tool_options,
         "perspectiveCrop": app.ui.perspective_crop,
         "strokeEditor": app.ui.stroke_editor,
@@ -1259,6 +1271,7 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
             // The picker's content size once its corner grip was dragged (null: the default).
             "size": app.ui.brush_picker_size,
             "list": {
+                "reorder": app.ui.brush_picker_list.reorder,
                 "collapsed": app.ui.brush_picker_list.collapsed,
                 "filter": app.ui.brush_picker_list.filter,
                 "renaming": app.ui.brush_picker_list.renaming,

@@ -4189,3 +4189,19 @@ shape	Appearance	Izgled
 # Custom print paper (#3820)
 	Paper Width	Širina papira
 	Paper Height	Visina papira
+
+	Paint with finger	Slikanje prstom
+
+# Painting mode
+	Editor	Уређивач
+	Return to editor	Назад у уређивач
+	Right-hand sidebar	Бочна трака десно
+	Painting Mode	Режим сликања
+	Paint	Сликање
+
+# Mask selection commands
+	Add Mask to Selection	Додај маску избору
+	Subtract Mask from Selection	Одузми маску од избора
+	Intersect Mask with Selection	Пресек маске са избором
+	Lock brush order	Закључај редослед четкица
+	Unlock brush order	Откључај редослед четкица

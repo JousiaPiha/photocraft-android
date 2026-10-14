@@ -563,3 +563,9 @@ backend command without submitting; it writes a PDF only when `output` is explic
 without an output requires `dryRun: true`. Remembered print settings omit `output`, `dryRun` and
 `send`, so Print One Copy derives submission from its own output choice. Shared spooler transport
 files are automatically removed on Windows; CUPS needs none.
+
+## Android build
+
+The native ARM64 Android tablet app is in `apps/photocraft-android`. See [Android](android.md)
+for SDK/NDK setup, `packaging/android/build.sh`, device installation, shared document storage,
+and authenticated adb-forwarded control.

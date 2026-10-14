@@ -3814,3 +3814,14 @@ curves	Smooth	Εξομάλυνση
 	Step {step} is waiting for its dialog	Το βήμα {step} περιμένει το παράθυρο διαλόγου του
 @plural	{n} action|{n} actions	{n} ενέργεια|{n} ενέργειες
 	Auto Add/Delete	Αυτόματη προσθήκη/διαγραφή
+
+	Paint with finger	Ζωγραφική με το δάχτυλο
+
+# Painting mode
+	Editor	Επεξεργαστής
+	Return to editor	Επιστροφή στον επεξεργαστή
+	Right-hand sidebar	Πλευρική γραμμή δεξιά
+	Painting Mode	Λειτουργία ζωγραφικής
+	Paint	Ζωγραφική
+	Lock brush order	Κλείδωμα σειράς πινέλων
+	Unlock brush order	Ξεκλείδωμα σειράς πινέλων

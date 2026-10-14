@@ -3714,3 +3714,14 @@ curves	Smooth	Wygładź
 	Step {step} is waiting for its dialog	Krok {step} czeka na swoje okno dialogowe
 @plural	{n} action|{n} actions	{n} operacja|{n} operacje|{n} operacji
 	Auto Add/Delete	Automatyczne dodawanie/usuwanie
+
+	Paint with finger	Malowanie palcem
+
+# Painting mode
+	Editor	Edytor
+	Return to editor	Wróć do edytora
+	Right-hand sidebar	Pasek boczny po prawej
+	Painting Mode	Tryb malowania
+	Paint	Maluj
+	Lock brush order	Zablokuj kolejność pędzli
+	Unlock brush order	Odblokuj kolejność pędzli

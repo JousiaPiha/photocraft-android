@@ -202,6 +202,14 @@ pub fn press_view(app: &PhotocraftApp) -> Option<PressView> {
     app.session.active_index().and_then(|i| app.ui.views.get(i)).map(|v| PressView { rotation: v.rotation, center: v.center })
 }
 
+/// Restore the camera when a touch gesture interrupts a crop drag.
+pub(crate) fn restore_press_view(app: &mut PhotocraftApp, press: Option<PressView>) {
+    if let (Some(press), Some(view)) = (press, app.session.active_index().and_then(|i| app.ui.views.get_mut(i))) {
+        view.center = press.center;
+        view.rotation = press.rotation;
+    }
+}
+
 /// Document point `p` as seen through camera `from` re-read through camera `to`: the point that
 /// `to` shows at the screen position where `from` shows `p` (zoom and flip are the same). `p`
 /// itself when anything isn't finite.

@@ -2798,3 +2798,15 @@ curves	Smooth	Suavizar
 	Step {step} is waiting for its dialog	El paso {step} está esperando su cuadro de diálogo
 @plural	{n} action|{n} actions	{n} acción|{n} acciones
 	Auto Add/Delete	Añadir/eliminar automáticamente
+
+	Paint with finger	Pintar con el dedo
+
+# Painting mode
+	Editor	Editor
+	Return to editor	Volver al editor
+	Right-hand sidebar	Barra lateral derecha
+	Painting Mode	Modo de pintura
+	Paint	Pintar
+	Brush Size	Tamaño del pincel
+	Lock brush order	Bloquear orden de pinceles
+	Unlock brush order	Desbloquear orden de pinceles

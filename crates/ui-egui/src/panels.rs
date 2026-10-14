@@ -568,7 +568,17 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     };
     let right = if caption_right > 0.0 { 0 } else { 10 };
     let bar = egui::Panel::top("title_bar")
-        .exact_size(crate::titlebar::bar_height(app, ui.ctx(), if t.pro { 32.0 } else { 38.0 }))
+        .exact_size(crate::titlebar::bar_height(
+            app,
+            ui.ctx(),
+            if cfg!(target_os = "android") {
+                48.0
+            } else if t.pro {
+                32.0
+            } else {
+                38.0
+            },
+        ))
         .frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin { left, right, top: 0, bottom: 0 }))
         .show(ui, |ui| {
             let full = ui.max_rect();
@@ -603,6 +613,17 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                     let side = if t.pro { 18.0 } else { 20.0 };
                     let (mark, _) = ui.allocate_exact_size(vec2(side, side), Sense::hover());
                     crate::brand::paint_mark(ui, mark);
+                    ui.add_space(6.0);
+                }
+                if !app.ui.painting.enabled {
+                    let button = egui::Button::image_and_text(icons::image("brush", 16.0, t.text), tl!("Painting"))
+                        .min_size(vec2(0.0, if cfg!(target_os = "android") { 44.0 } else { 28.0 }));
+                    if ui.add(button).on_hover_text(tl!("Painting Mode")).clicked() {
+                        let ctx = ui.ctx().clone();
+                        if let Err(error) = crate::menus::invoke(app, &ctx, crate::painting_mode::COMMAND, json!({"enabled": true})) {
+                            crate::notices::error(app, error);
+                        }
+                    }
                     ui.add_space(6.0);
                 }
                 // With the macOS menu bar the menus are at the top of the screen instead. Either way

@@ -1340,6 +1340,25 @@ fn accepts_outside_click(g: Gesture, end: [f64; 2], tol: f64) -> bool {
     g.hit == Hit::Outside && (end[0] - g.start[0]).hypot(end[1] - g.start[1]) <= 2.0 * tol / HANDLE_PX
 }
 
+/// Roll back the current pointer gesture, keeping the transform session open.
+pub(crate) fn cancel_pointer(app: &mut PhotocraftApp) {
+    let Some(pv) = app.transform_preview.as_mut() else { return };
+    if let Some(g) = pv.gesture.take()
+        && let Some(t) = app.ui.transform.as_mut()
+    {
+        t.quad = g.quad0;
+        t.pivot = g.pivot0;
+    }
+    if let Some(WarpDrag::Point { pts0, .. } | WarpDrag::Surface { pts0, .. }) = pv.warp_drag.take()
+        && let Some(mesh) = app.ui.transform.as_mut().and_then(|t| t.warp.as_mut()).and_then(|w| w.mesh.as_mut())
+    {
+        mesh.points = pts0;
+    }
+    pv.split_pointer = None;
+    pv.split_placing = false;
+    pv.split_quick = false;
+}
+
 /// Pointer input while transforming. Returns false when no transform is active.
 pub fn pointer(app: &mut PhotocraftApp, ev: ToolEvent, mods: egui::Modifiers) -> bool {
     let Some(t) = app.ui.transform.clone() else { return false };

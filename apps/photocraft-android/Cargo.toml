@@ -1,0 +1,36 @@
+[package]
+name = "photocraft-android"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "PhotoCraft native Android application"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+# Android requires an exported entry point. Only that attribute opts out below;
+# every module denies unsafe code and no unsafe block is used.
+[lints.rust]
+unsafe_code = "deny"
+
+[dependencies]
+photocraft-ui-egui = { workspace = true }
+photocraft-engine = { workspace = true }
+photocraft-doc = { workspace = true }
+photocraft-io = { workspace = true }
+photocraft-format = { workspace = true }
+photocraft-codecs = { workspace = true }
+photocraft-automation = { workspace = true }
+eframe = { workspace = true, features = ["wgpu"] }
+egui = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+
+[target.'cfg(target_os = "android")'.dependencies]
+eframe = { workspace = true, features = ["android-native-activity", "persistence"] }
+android-activity = { version = "=0.6.1", features = ["native-activity"] }
+android_logger = "0.15"
+jni = "=0.22.4"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+eframe = { workspace = true, features = ["x11", "wayland"] }

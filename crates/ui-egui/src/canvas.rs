@@ -1822,7 +1822,7 @@ fn documents(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
         paint_dots(ui, ui.available_rect_before_wrap(), app.session.prefs().interface.show_canvas_dots);
         return;
     }
-    if !app.ui.view.hides_tabs() || opening {
+    if !app.ui.painting.enabled && (!app.ui.view.hides_tabs() || opening) {
         // Flat Spectrum tabs sit directly against the canvas. The parent's default vertical
         // item spacing would otherwise leave a visible gap below the tab strip (#2188).
         let spacing = ui.spacing().item_spacing.y;
@@ -2690,6 +2690,11 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         ctx.request_repaint();
     }
     let flip = app.ui.view.flip_horizontal;
+    if primary && let Some(gesture) = app.touch_navigation.gesture.take() {
+        let xf = ViewXform { rect, zoom: view.zoom / ppp, center: view.center, flip, rotation: view.rotation, aspect };
+        crate::touch_nav::apply(&mut view, xf, ppp, gesture);
+        ctx.request_repaint();
+    }
     // Canvas geometry (ViewXform, ViewParams, painter rects) is in egui points.
     let point_zoom = view.zoom / ppp;
     let xf = ViewXform { rect, zoom: point_zoom, center: view.center, flip, rotation: view.rotation, aspect };
@@ -3122,7 +3127,7 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
             let d = xf.to_doc(p);
             crate::layer_picker::sample_at(app, d[0], d[1]);
         }
-    } else if primary && !stroke_dismissal {
+    } else if primary && !stroke_dismissal && !app.touch_navigation.block_tools {
         let mods = ui.input(|i| i.modifiers);
         // An ⌥-click the window manager took never arrives; say so (alt_grab.rs).
         crate::alt_grab::watch(app, &ctx, egui::Id::new(("pc-alt-grab", idx)), rect, tool, !under_dialog);
@@ -3130,6 +3135,40 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         // (Preferences › Tools, `paint_mouse`).
         crate::paint_mouse::sync_tool_brush(app);
         let mut buttons = crate::paint_mouse::canvas_buttons(app, &response, tool);
+        // Painting's sampler owns the contact from press to lift, including a stationary hold.
+        // Its release cannot fall through to Brush and leave an accidental dab.
+        if app.ui.painting.enabled && tool == Tool::Eyedropper && temporary.is_none() {
+            let (pressed, down, released, pos, moved) = ui.input(|i| {
+                (
+                    i.pointer.primary_pressed(),
+                    i.pointer.primary_down(),
+                    i.pointer.primary_released(),
+                    i.pointer.interact_pos(),
+                    i.pointer.delta() != egui::Vec2::ZERO,
+                )
+            });
+            if pressed && response.is_pointer_button_down_on() {
+                app.ui.painting.sampling = true;
+            }
+            if app.ui.painting.sampling {
+                if (pressed || released || (down && moved))
+                    && let Some(pos) = pos
+                {
+                    let d = xf.to_doc(pos);
+                    sample_eyedropper(app, d[0], d[1], mods);
+                }
+                if released {
+                    app.ui.painting.sampling = false;
+                    app.ui.tool = Tool::Brush;
+                    crate::paint_mouse::sync_tool_brush(app);
+                } else if !down {
+                    app.ui.painting.sampling = false;
+                }
+            }
+            (buttons.started, buttons.dragged, buttons.stopped, buttons.clicked) = (false, false, false, false);
+        } else {
+            app.ui.painting.sampling = false;
+        }
         // The Crop tool's frame is edited from the press (before egui's drag threshold), so the
         // pixels past the canvas show at once, as in Photoshop.
         if tool == Tool::Crop && response.is_pointer_button_down_on() && ui.input(|i| i.pointer.primary_down()) && crate::crop_ui::press(app) {
@@ -3748,7 +3787,8 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
     // Scrollbars (scrollbars.rs): drawn over the canvas edges, they take the pointer there.
     let t0 = crate::gpu_canvas::now_ms();
     let before = view.center;
-    let over_bars = app.ui.view.shows_scrollbars()
+    let over_bars = !app.ui.painting.enabled
+        && app.ui.view.shows_scrollbars()
         && crate::scrollbars::show(ui, rect, &mut view, flip, aspect, app.session.prefs().tools.overscroll, egui::Id::new(("pc-canvas", idx)));
     ctx.data_mut(|d| d.insert_temp(bars_id, over_bars));
     if view.center != before {
@@ -4768,7 +4808,14 @@ pub fn tool_event(app: &mut PhotocraftApp, ev: ToolEvent, mods: egui::Modifiers)
                 sample_eyedropper(app, x, y, mods);
                 return;
             }
-            ToolEvent::Up { .. } => return,
+            ToolEvent::Up { .. } => {
+                if app.ui.painting.enabled {
+                    app.ui.painting.sampling = false;
+                    app.ui.tool = Tool::Brush;
+                    crate::paint_mouse::sync_tool_brush(app);
+                }
+                return;
+            }
         }
     }
     // A locked layer (the Background without a selection, say): no drag, and Photoshop's message

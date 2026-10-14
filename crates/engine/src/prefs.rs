@@ -891,13 +891,21 @@ impl TypePrefs {
 pub struct EnhancedControls {
     pub scrubby_slider_acceleration: bool,
     pub touch_gestures: bool,
+    /// Android: allow a single finger to operate canvas tools.
+    pub paint_with_finger: bool,
     pub zoom_with_trackpad_pinch: bool,
     pub rotate_view_with_trackpad: bool,
 }
 
 impl Default for EnhancedControls {
     fn default() -> Self {
-        Self { scrubby_slider_acceleration: true, touch_gestures: true, zoom_with_trackpad_pinch: true, rotate_view_with_trackpad: false }
+        Self {
+            scrubby_slider_acceleration: true,
+            touch_gestures: true,
+            paint_with_finger: true,
+            zoom_with_trackpad_pinch: true,
+            rotate_view_with_trackpad: false,
+        }
     }
 }
 
@@ -1066,7 +1074,6 @@ pub const HIDDEN_UNTIL_IMPLEMENTED: &[&str] = &[
     "type.textEngine",
     "type.recentFonts",
     "enhancedControls.scrubbySliderAcceleration",
-    "enhancedControls.touchGestures",
     "rawDefaults.colorSpace",
     "rawDefaults.bitDepth",
     "rawDefaults.resolution",
@@ -1081,7 +1088,9 @@ pub const HIDDEN_UNTIL_IMPLEMENTED: &[&str] = &[
 
 /// Is the preference at `path` (`"section.key"`) hidden from the Preferences dialog?
 pub fn is_hidden(path: &str) -> bool {
-    HIDDEN_UNTIL_IMPLEMENTED.contains(&path) || (!cfg!(target_os = "linux") && LINUX_ONLY.contains(&path))
+    HIDDEN_UNTIL_IMPLEMENTED.contains(&path)
+        || (!cfg!(target_os = "android") && matches!(path, "enhancedControls.paintWithFinger" | "enhancedControls.touchGestures"))
+        || (!cfg!(target_os = "linux") && LINUX_ONLY.contains(&path))
 }
 
 /// Preferences that only do something on Linux; the dialog doesn't show them elsewhere. They

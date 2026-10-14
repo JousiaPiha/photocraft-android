@@ -220,7 +220,7 @@ fn select_workspace(app: &mut PhotocraftApp, p: &Value) -> Result<Value, String>
         return Err(format!("no workspace \"{name}\""));
     }
     app.ui.workspace = name.clone();
-    apply_custom(app);
+    crate::menus::apply_workspace(app);
     Ok(json!({"workspace": name}))
 }
 

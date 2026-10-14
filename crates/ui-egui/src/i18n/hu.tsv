@@ -4038,3 +4038,14 @@ cameraRaw	Yellow	Sárga
 	Loaded Camera Raw settings from {file}	Camera Raw-beállítások betöltve innen: {file}
 	Loaded Camera Raw settings from {file} ({n} not supported)	Camera Raw-beállítások betöltve innen: {file} ({n} nem támogatott)
 	Auto Add/Delete	Automatikus hozzáadás/törlés
+
+	Paint with finger	Festés ujjal
+
+# Painting mode
+	Editor	Szerkesztő
+	Return to editor	Vissza a szerkesztőhöz
+	Right-hand sidebar	Jobb oldali oldalsáv
+	Painting Mode	Festési mód
+	Paint	Festés
+	Lock brush order	Ecsetsorrend zárolása
+	Unlock brush order	Ecsetsorrend feloldása

@@ -3849,3 +3849,14 @@ cameraData	Lens	Lens
 	Loaded Camera Raw settings from {file}	Camera Raw ayarları {file} dosyasından yüklendi
 	Loaded Camera Raw settings from {file} ({n} not supported)	Camera Raw ayarları {file} dosyasından yüklendi ({n} desteklenmiyor)
 	Auto Add/Delete	Otomatik Ekle/Sil
+
+	Paint with finger	Parmakla boya
+
+# Painting mode
+	Editor	Düzenleyici
+	Return to editor	Düzenleyiciye dön
+	Right-hand sidebar	Sağ kenar çubuğu
+	Painting Mode	Boyama modu
+	Paint	Boya
+	Lock brush order	Fırça sırasını kilitle
+	Unlock brush order	Fırça sırasının kilidini aç

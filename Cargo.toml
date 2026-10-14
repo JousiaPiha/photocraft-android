@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = ["crates/*", "apps/*", "xtask"]
+exclude = ["vendor/winit", "vendor/android-activity"]
 default-members = ["crates/*", "apps/photocraft", "apps/photocraft-cli", "xtask"]
 
 [workspace.package]
@@ -141,3 +142,8 @@ opt-level = 3
 [profile.wasm-release.package.photocraft-paint]
 opt-level = 3
 
+
+# winit 0.30 drops Android tool types; see vendor/winit/PHOTOCRAFT.md.
+[patch.crates-io]
+winit = { path = "vendor/winit" }
+android-activity = { path = "vendor/android-activity" }

@@ -3602,3 +3602,14 @@ curves	Smooth	Làm mượt
 	Import .GRD	Nhập .GRD
 	Choose a gradient file (.grd).	Chọn tệp chuyển sắc (.grd).
 	Auto Add/Delete	Tự động thêm/xóa
+
+	Paint with finger	Vẽ bằng ngón tay
+
+# Painting mode
+	Editor	Trình chỉnh sửa
+	Return to editor	Quay lại trình chỉnh sửa
+	Right-hand sidebar	Thanh bên phải
+	Painting Mode	Chế độ vẽ
+	Paint	Vẽ
+	Lock brush order	Khóa thứ tự cọ
+	Unlock brush order	Mở khóa thứ tự cọ

@@ -199,12 +199,16 @@ mod tile_overlay;
 mod timeline_ui;
 mod titlebar;
 pub use titlebar::{Caption, CaptionFamily, CaptionIcon, CaptionIcons, CaptionStyle, RenderIconFn};
+pub mod painting_mode;
+#[cfg(test)]
+mod painting_mode_tests;
 pub mod tone;
 mod tool_cursor;
 pub mod tool_feedback;
 pub(crate) mod tool_memory;
 mod tool_reset;
 mod tool_shortcuts;
+mod touch_nav;
 pub mod transform_fx;
 pub mod transform_tex;
 pub mod transform_tool;
@@ -725,6 +729,7 @@ pub struct PhotocraftApp {
     pub(crate) allow_close: bool,
     /// Pen pressure/tilt from the platform (see `stylus`).
     pub stylus: stylus::Stylus,
+    pub(crate) touch_navigation: touch_nav::TouchNavigation,
     /// Run long commands and file opens as background jobs with progress and Cancel (#210; see
     /// `jobs_ui`). The desktop app turns it on; off (the default), everything runs inline as
     /// before, which tests and scripts rely on.
@@ -851,6 +856,7 @@ impl PhotocraftApp {
             targa_options: None,
             allow_close: false,
             stylus: Default::default(),
+            touch_navigation: Default::default(),
             background_jobs: false,
             jobs: Default::default(),
             #[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
@@ -1759,28 +1765,38 @@ impl eframe::App for PhotocraftApp {
         // The OS title bar (and the taskbar / Alt-Tab entry) follows the active file; with the
         // system title bar this is where the document name lives, as the in-app title is hidden.
         panels::sync_window_title(self, &ctx);
+        painting_mode::sync_screen_mode(self, &ctx);
         let chrome = !self.ui.view.hides_chrome();
-        if chrome && self.ui.panels.menu_bar {
+        let painting = chrome && self.ui.painting.enabled;
+        if chrome && self.ui.panels.menu_bar && (!painting || self.custom_titlebar || self.integrated_titlebar) {
             panels::title_bar(self, ui);
         }
-        if chrome && self.ui.panels.options_bar {
+        if chrome && !painting && self.ui.panels.options_bar {
             panels::options_bar(self, ui);
         }
-        if chrome && self.ui.panels.status_bar {
+        if chrome && !painting && self.ui.panels.status_bar {
             panels::status_bar(self, ui);
         }
-        if chrome && self.ui.panels.toolbar {
+        if chrome && !painting && self.ui.panels.toolbar {
             panels::toolbar(self, ui);
         }
-        if chrome && self.ui.panels.dock {
+        if chrome && !painting && self.ui.panels.dock {
             panels::right_dock(self, ui);
+        }
+        if painting {
+            painting_mode::chrome(self, ui);
         }
         let t = theme::Tokens::get(&ctx);
         let backdrop = if chrome { prefs_ui::pasteboard_color(self).unwrap_or(t.canvas) } else { egui::Color32::BLACK };
         egui::CentralPanel::default().frame(egui::Frame::NONE.fill(backdrop)).show(ui, |ui| {
             canvas::document_area(self, ui);
         });
-        panels::properties_window(self, &ctx);
+        if painting {
+            painting_mode::overlay(self, &ctx);
+        }
+        if !painting {
+            panels::properties_window(self, &ctx);
+        }
         brush_panel::window(self, &ctx);
         preset_panels::windows(self, &ctx);
         gradient_ui::editor_window(self, &ctx);
@@ -2391,6 +2407,46 @@ impl PhotocraftApp {
         self.os_clip_sig = Some(sig);
         self.clip_external = true;
         true
+    }
+}
+
+impl PhotocraftApp {
+    /// Android only: call before the eframe raw-input hook. Requires the pinned
+    /// winit tool-type patch (finger force=None; pen/mouse force=Some).
+    pub fn android_touch_input(&mut self, ctx: &egui::Context, raw: &mut egui::RawInput) {
+        let rect = crate::rulers::content_rect(self, self.last_canvas_rect);
+        self.touch_navigation.document(self.session.active().map(|state| state.doc.id.0));
+        let time = raw.time.unwrap_or_else(|| ctx.input(|i| i.time) + f64::from(raw.predicted_dt));
+        let prefs = &self.session.prefs().enhanced_controls;
+        let cancel = self.touch_navigation.process(raw, prefs.paint_with_finger, prefs.touch_gestures, time, |pos| {
+            rect.contains(pos) && ctx.layer_id_at(pos).is_none_or(|layer| layer.order == egui::Order::Background)
+        });
+        if cancel {
+            crop_ui::cancel_pointer(self);
+            transform_tool::cancel_pointer(self);
+            gradient_ui::cancel_pointer(self);
+            type_transform::cancel_drag(self);
+            self.pcrop.drag = None;
+            self.ui.frame_tool.drag = None;
+            self.ui.artboard_tool.drag = None;
+            self.ui.direct_selection.drag = None;
+            self.layer_box = None;
+            self.guide_drag = None;
+            self.drag = None;
+            self.live_stroke = None;
+            self.trail = None;
+            self.session.clear_live_stroke();
+        }
+        if self.touch_navigation.reset_view {
+            for command in ["view.resetView", "view.fitOnScreen"] {
+                if let Err(error) = menus::invoke(self, ctx, command, serde_json::json!({})) {
+                    self.ui.status_error = true;
+                    self.ui.status = error;
+                    break;
+                }
+            }
+            ctx.request_repaint();
+        }
     }
 }
 

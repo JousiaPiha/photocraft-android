@@ -403,6 +403,18 @@ pub fn cancel(app: &mut PhotocraftApp) {
     crate::crop_straighten::reset(app);
 }
 
+/// Abort only the pointer gesture when touch navigation takes over.
+pub(crate) fn cancel_pointer(app: &mut PhotocraftApp) {
+    let drag = app.crop.drag.take();
+    if let Some(before) = app.crop.press_step.take() {
+        apply_step(app, before);
+    }
+    if let Some(CropDrag::MoveImage { view, .. } | CropDrag::TurnImage { view, .. } | CropDrag::Resize { view, .. }) = drag {
+        crate::crop_mode::restore_press_view(app, view);
+    }
+    crate::crop_straighten::reset(app);
+}
+
 /// Drop the box's own Undo/Redo (leaving the tool, cancelling or committing a crop).
 pub fn clear_history(app: &mut PhotocraftApp) {
     app.crop.undo.clear();

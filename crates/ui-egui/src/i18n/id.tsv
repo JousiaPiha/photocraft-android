@@ -3105,3 +3105,15 @@ curves	Smooth	Haluskan
 	Step {step} is waiting for its dialog	Langkah {step} menunggu dialognya
 @plural	{n} action|{n} actions	{n} tindakan
 	Auto Add/Delete	Tambah/Hapus Otomatis
+
+	Paint with finger	Melukis dengan jari
+
+# Painting mode
+	Editor	Editor
+	Return to editor	Kembali ke editor
+	Right-hand sidebar	Bilah samping kanan
+	Painting Mode	Mode melukis
+	Paint	Lukis
+	Strength	Kekuatan
+	Lock brush order	Kunci urutan kuas
+	Unlock brush order	Buka kunci urutan kuas

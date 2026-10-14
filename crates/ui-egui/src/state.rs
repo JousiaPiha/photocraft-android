@@ -1180,6 +1180,9 @@ pub struct UiState {
     pub windows: Vec<DocWindow>,
     pub theme: crate::theme::ThemeKind,
     pub workspace: String,
+    /// Canvas-focused painting chrome, independent of the saved editor panel layout.
+    #[serde(default)]
+    pub painting: crate::painting_mode::PaintingMode,
     pub palette_open: bool,
     pub dock_tabs: DockTabs,
     /// Right-dock group order, heights and collapsed groups (see `dock`).
@@ -1313,6 +1316,7 @@ impl Default for UiState {
             windows: Vec::new(),
             theme: crate::theme::ThemeKind::ProMedium,
             workspace: "Essentials".into(),
+            painting: Default::default(),
             palette_open: false,
             dock_tabs: DockTabs::default(),
             dock: Default::default(),

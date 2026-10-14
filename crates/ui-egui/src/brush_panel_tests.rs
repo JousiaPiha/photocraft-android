@@ -913,32 +913,36 @@ fn folder_drops_map_to_move_commands() {
     assert!(order.iter().position(|g| g == "Fine") < order.iter().position(|g| g == "Kit"));
 }
 
-/// A folder header dragged onto another folder's header in the Brushes panel goes inside it.
+/// Folder drags organize only when the list is explicitly unlocked.
 #[test]
-fn dragging_a_folder_header_onto_another_moves_it_inside() {
+fn dragging_a_folder_header_organizes_only_when_unlocked() {
     use egui_kittest::kittest::Queryable;
-    let mut h = harness(1, 0);
-    let builtin_groups: Vec<String> = grouped_presets(&h.state().session.tools.presets).into_iter().map(|(g, _)| g).collect();
-    h.state_mut().ui.brushes_panel.collapsed = builtin_groups;
-    for p in [kit("Kit Pen", &["Test Inks"]), kit("Kit Chalk", &["Test Dry"])] {
-        h.state_mut().session.tools.presets.push(p);
+    for reorder in [false, true] {
+        let mut h = harness(1, 0);
+        h.state_mut().ui.brushes_panel.reorder = reorder;
+        let builtin_groups: Vec<String> = grouped_presets(&h.state().session.tools.presets).into_iter().map(|(g, _)| g).collect();
+        h.state_mut().ui.brushes_panel.collapsed = builtin_groups;
+        for p in [kit("Kit Pen", &["Test Inks"]), kit("Kit Chalk", &["Test Dry"])] {
+            h.state_mut().session.tools.presets.push(p);
+        }
+        h.run_steps(3);
+        let from = h.get_by_label("Test Dry").rect().center();
+        let to = h.get_by_label("Test Inks").rect();
+        let to = egui::pos2(to.center().x, to.top() + to.height() * 0.7);
+        h.hover_at(from);
+        h.run_steps(3);
+        h.drag_at(from);
+        h.run_steps(3);
+        for k in 1..=6 {
+            h.hover_at(from + (to - from) * (k as f32 / 6.0));
+            h.run_steps(3);
+        }
+        h.drop_at(to);
+        h.run_steps(3);
+        let expected = if reorder { vec!["Test Inks", "Test Dry"] } else { vec!["Test Dry"] };
+        assert_eq!(paint::presets::find(&h.state().session.tools.presets, "Kit Chalk").unwrap().folder, expected);
+        assert_eq!(h.state().session.journal.iter().any(|entry| entry.0 == "brush.presets.moveGroup"), reorder);
     }
-    h.run_steps(3);
-    let from = h.get_by_label("Test Dry").rect().center();
-    let to = h.get_by_label("Test Inks").rect();
-    let to = egui::pos2(to.center().x, to.top() + to.height() * 0.7);
-    h.hover_at(from);
-    h.run();
-    h.drag_at(from);
-    h.run();
-    for k in 1..=6 {
-        h.hover_at(from + (to - from) * (k as f32 / 6.0));
-        h.run();
-    }
-    h.drop_at(to);
-    h.run_steps(3);
-    assert_eq!(paint::presets::find(&h.state().session.tools.presets, "Kit Chalk").unwrap().folder, ["Test Inks", "Test Dry"]);
-    assert_eq!(last_journal(h.state()).unwrap().0, "brush.presets.moveGroup");
 }
 
 /// A fresh session with the Brush tool: shortcuts, the options bar and the Brush Settings window,

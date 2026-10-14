@@ -2757,3 +2757,16 @@ curves	Smooth	Glätten
 	Step {step} is waiting for its dialog	Schritt {step} wartet auf seinen Dialog
 @plural	{n} action|{n} actions	{n} Aktion|{n} Aktionen
 	Auto Add/Delete	Autom. hinzuf./löschen
+
+	Paint with finger	Mit dem Finger malen
+
+# Painting mode
+	Editor	Editor
+	Return to editor	Zurück zum Editor
+	Right-hand sidebar	Seitenleiste rechts
+	Painting Mode	Malmodus
+	Paint	Malen
+	Brush Size	Pinselgröße
+	Strength	Stärke
+	Lock brush order	Pinselreihenfolge sperren
+	Unlock brush order	Pinselreihenfolge entsperren

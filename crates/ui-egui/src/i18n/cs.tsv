@@ -3725,3 +3725,14 @@ navigator	Zoom	Zvětšení
 	Step {step} is waiting for its dialog	Krok {step} čeká na svůj dialog
 @plural	{n} action|{n} actions	{n} akce|{n} akce|{n} akcí
 	Auto Add/Delete	Automaticky přidat/odstranit
+
+	Paint with finger	Malovat prstem
+
+# Painting mode
+	Editor	Editor
+	Return to editor	Zpět do editoru
+	Right-hand sidebar	Postranní panel vpravo
+	Painting Mode	Režim malování
+	Paint	Malovat
+	Lock brush order	Zamknout pořadí štětců
+	Unlock brush order	Odemknout pořadí štětců

@@ -1058,3 +1058,254 @@ fn move_tool_controls_rotate_from_just_outside_the_box() {
     let tilt = (end[1][1] - end[0][1]).atan2(end[1][0] - end[0][0]).to_degrees();
     assert!((tilt - 90.0).abs() < 8.0 || (tilt + 270.0).abs() < 8.0, "rotated about a quarter turn, got {tilt}° (zoom {zoom})");
 }
+
+/// Exercise Android's raw-input adapter, egui pointer ownership and the actual
+/// canvas/engine together (not just the gesture arithmetic).
+fn android_contact(h: &mut Harness<'static, PhotocraftApp>, id: u64, phase: egui::TouchPhase, p: Pos2, force: Option<f32>) {
+    let mut events = vec![egui::Event::Touch { device_id: egui::TouchDeviceId(1), id: egui::TouchId(id), phase, pos: p, force }];
+    // egui-winit emulates its pointer from the first contact only.
+    if id == 0 {
+        if matches!(phase, egui::TouchPhase::Start | egui::TouchPhase::Move) {
+            events.push(egui::Event::PointerMoved(p));
+        }
+        if matches!(phase, egui::TouchPhase::Start | egui::TouchPhase::End) {
+            events.push(egui::Event::PointerButton {
+                pos: p,
+                button: egui::PointerButton::Primary,
+                pressed: phase == egui::TouchPhase::Start,
+                modifiers: Modifiers::NONE,
+            });
+        }
+        if matches!(phase, egui::TouchPhase::End | egui::TouchPhase::Cancel) {
+            events.push(egui::Event::PointerGone);
+        }
+    }
+    let mut raw = egui::RawInput { events, focused: true, ..Default::default() };
+    let ctx = h.ctx.clone();
+    h.state_mut().android_touch_input(&ctx, &mut raw);
+    h.input_mut().events.extend(raw.events);
+    h.step();
+}
+
+#[test]
+fn android_finger_off_keeps_pen_painting_and_two_finger_navigation() {
+    use egui::TouchPhase::{End, Move, Start};
+    let mut h = harness();
+    h.state_mut().ui.tool = crate::state::Tool::Brush;
+    h.state_mut().run("prefs.set", json!({"path":"enhancedControls.paintWithFinger", "value":false})).unwrap();
+    let a = h.state().last_canvas_rect.center();
+    let revision = h.state().session.active().unwrap().revision;
+    android_contact(&mut h, 0, Start, a, None);
+    android_contact(&mut h, 0, Move, a + vec2(20.0, 20.0), None);
+    android_contact(&mut h, 0, End, a + vec2(20.0, 20.0), None);
+    assert_eq!(h.state().session.active().unwrap().revision, revision, "finger must not paint");
+    assert!(h.state().drag.is_none());
+    let view = h.state().ui.views[0].clone();
+    android_contact(&mut h, 0, Start, a - vec2(80.0, 0.0), None);
+    android_contact(&mut h, 1, Start, a + vec2(80.0, 0.0), None);
+    android_contact(&mut h, 1, Move, a + vec2(120.0, 60.0), None);
+    let after = &h.state().ui.views[0];
+    assert!(after.zoom > view.zoom, "pinch zooms");
+    assert!(after.rotation.abs() > 1.0, "twist rotates independently of trackpad preference");
+    assert_ne!(after.center, view.center, "centroid pans");
+    android_contact(&mut h, 1, End, a + vec2(120.0, 60.0), None);
+    android_contact(&mut h, 0, Move, a, None);
+    android_contact(&mut h, 0, End, a, None);
+    assert_eq!(h.state().session.active().unwrap().revision, revision, "gesture including last finger leaves no marks");
+    android_contact(&mut h, 0, Start, a, Some(0.7));
+    android_contact(&mut h, 0, Move, a + vec2(40.0, 20.0), Some(0.7));
+    android_contact(&mut h, 0, End, a + vec2(40.0, 20.0), Some(0.0));
+    assert!(h.state().session.active().unwrap().revision > revision, "pen must still paint");
+}
+
+#[test]
+fn android_finger_double_tap_resets_rotation_and_fits_without_editing() {
+    use egui::TouchPhase::{End, Start};
+    let mut h = harness();
+    h.state_mut().ui.tool = crate::state::Tool::Brush;
+    h.state_mut().run("prefs.set", json!({"path":"enhancedControls.paintWithFinger", "value":false})).unwrap();
+    let fitted = h.state().ui.views[0].clone();
+    {
+        let view = &mut h.state_mut().ui.views[0];
+        view.zoom = 3.0;
+        view.center = [100.0, 80.0];
+        view.rotation = 45.0;
+        view.fit_pending = false;
+    }
+    let a = h.state().last_canvas_rect.center();
+    let revision = h.state().session.active().unwrap().revision;
+    for tap in 0..2 {
+        android_contact(&mut h, 0, Start, a, None);
+        android_contact(&mut h, 0, End, a, None);
+        if tap == 0 {
+            assert_eq!(h.state().ui.views[0].rotation, 45.0, "one tap does not navigate");
+        }
+    }
+    h.run_steps(2);
+    let view = &h.state().ui.views[0];
+    assert_eq!(view.rotation, 0.0);
+    assert_eq!(view.center, fitted.center);
+    assert_eq!(view.zoom, fitted.zoom);
+    assert_eq!(h.state().session.active().unwrap().revision, revision);
+    assert!(h.state().drag.is_none());
+}
+
+#[test]
+fn android_double_tap_respects_preferences_pen_and_dialogs() {
+    use egui::TouchPhase::{End, Start};
+    for (paint, gestures, pen, dialog) in [(true, true, false, false), (false, false, false, false), (false, true, true, false), (false, true, false, true)] {
+        let mut h = harness();
+        h.state_mut().ui.tool = crate::state::Tool::Brush;
+        h.state_mut().run("prefs.set", json!({"path":"enhancedControls.paintWithFinger", "value":paint})).unwrap();
+        h.state_mut().run("prefs.set", json!({"path":"enhancedControls.touchGestures", "value":gestures})).unwrap();
+        if dialog {
+            open_dialog(&mut h);
+        }
+        h.state_mut().ui.views[0].rotation = 35.0;
+        let a = h.state().last_canvas_rect.center();
+        let revision = h.state().session.active().unwrap().revision;
+        for _ in 0..2 {
+            android_contact(&mut h, 0, Start, a, pen.then_some(0.5));
+            android_contact(&mut h, 0, End, a, pen.then_some(0.0));
+        }
+        assert_eq!(h.state().ui.views[0].rotation, 35.0, "paint={paint} gestures={gestures} pen={pen} dialog={dialog}");
+        if paint || pen {
+            assert!(h.state().session.active().unwrap().revision > revision, "painting taps still work");
+        }
+    }
+}
+
+#[test]
+fn android_second_finger_cancels_pending_paint_and_mouse_still_works() {
+    use egui::TouchPhase::{End, Move, Start};
+    let mut h = harness();
+    h.state_mut().ui.tool = crate::state::Tool::Brush;
+    let a = h.state().last_canvas_rect.center();
+    let revision = h.state().session.active().unwrap().revision;
+    android_contact(&mut h, 0, Start, a, None);
+    android_contact(&mut h, 0, Move, a + vec2(20.0, 0.0), None);
+    assert!(h.state().drag.is_some());
+    android_contact(&mut h, 1, Start, a + vec2(80.0, 0.0), None);
+    assert!(h.state().drag.is_none());
+    assert!(h.state().live_stroke.is_none());
+    android_contact(&mut h, 1, End, a + vec2(80.0, 0.0), None);
+    android_contact(&mut h, 0, End, a + vec2(20.0, 0.0), None);
+    assert_eq!(h.state().session.active().unwrap().revision, revision);
+    h.state_mut().run("prefs.set", json!({"path":"enhancedControls.paintWithFinger", "value":false})).unwrap();
+    let mut raw = egui::RawInput { focused: true, ..Default::default() };
+    let ctx = h.ctx.clone();
+    h.state_mut().android_touch_input(&ctx, &mut raw);
+    h.event(egui::Event::PointerMoved(a));
+    h.event(egui::Event::PointerButton { pos: a, button: egui::PointerButton::Primary, pressed: true, modifiers: Modifiers::NONE });
+    h.event(egui::Event::PointerMoved(a + vec2(50.0, 0.0)));
+    h.event(egui::Event::PointerButton { pos: a + vec2(50.0, 0.0), button: egui::PointerButton::Primary, pressed: false, modifiers: Modifiers::NONE });
+    h.run_steps(3);
+    assert!(h.state().session.active().unwrap().revision > revision);
+}
+
+#[test]
+fn android_pen_release_commits_while_a_finger_is_resting() {
+    use egui::TouchPhase::{End, Move, Start};
+    let mut h = harness();
+    h.state_mut().ui.tool = crate::state::Tool::Brush;
+    h.state_mut().run("prefs.set", json!({"path":"enhancedControls.paintWithFinger", "value":false})).unwrap();
+    let a = h.state().last_canvas_rect.center();
+    let rev = h.state().session.active().unwrap().revision;
+    android_contact(&mut h, 0, Start, a, Some(0.6));
+    android_contact(&mut h, 1, Start, a + vec2(150.0, 0.0), None);
+    android_contact(&mut h, 0, Move, a + vec2(40.0, 20.0), Some(0.6));
+    android_contact(&mut h, 0, End, a + vec2(40.0, 20.0), Some(0.0));
+    assert!(h.state().drag.is_none(), "pen release cannot be swallowed by a resting finger");
+    assert!(h.state().session.active().unwrap().revision > rev);
+}
+
+#[test]
+fn android_cancel_and_focus_loss_release_pointer_without_committing() {
+    use egui::TouchPhase::{Cancel, Move, Start};
+    for focus_loss in [false, true] {
+        let mut h = harness();
+        h.state_mut().ui.tool = crate::state::Tool::Brush;
+        let a = h.state().last_canvas_rect.center();
+        let rev = h.state().session.active().unwrap().revision;
+        android_contact(&mut h, 0, Start, a, None);
+        android_contact(&mut h, 0, Move, a + vec2(40.0, 0.0), None);
+        assert!(h.state().drag.is_some());
+        if focus_loss {
+            let mut raw = egui::RawInput { focused: false, ..Default::default() };
+            let ctx = h.ctx.clone();
+            h.state_mut().android_touch_input(&ctx, &mut raw);
+            h.input_mut().events.extend(raw.events);
+            h.step();
+        } else {
+            android_contact(&mut h, 0, Cancel, a + vec2(40.0, 0.0), None);
+        }
+        assert!(h.state().drag.is_none());
+        assert!(!h.ctx.input(|i| i.pointer.primary_down()));
+        assert_eq!(h.state().session.active().unwrap().revision, rev);
+    }
+}
+
+#[test]
+fn android_two_finger_takeover_restores_crop_preview_and_clears_drag() {
+    use egui::TouchPhase::{End, Move, Start};
+    let mut h = harness();
+    h.state_mut().ui.tool = crate::state::Tool::Crop;
+    h.run_steps(2);
+    let before = h.state().ui.crop_rect;
+    let a = h.state().last_canvas_rect.center();
+    android_contact(&mut h, 0, Start, a, None);
+    android_contact(&mut h, 0, Move, a + vec2(80.0, 60.0), None);
+    assert!(h.state().crop.drag.is_some());
+    android_contact(&mut h, 1, Start, a + vec2(150.0, 0.0), None);
+    assert!(h.state().crop.drag.is_none());
+    assert_eq!(h.state().ui.crop_rect, before);
+    android_contact(&mut h, 1, End, a + vec2(150.0, 0.0), None);
+    android_contact(&mut h, 0, End, a + vec2(80.0, 60.0), None);
+    assert!(h.state().crop.drag.is_none());
+}
+
+#[test]
+fn android_two_finger_takeover_restores_transform_without_committing() {
+    use egui::TouchPhase::{End, Move, Start};
+    let mut h = harness();
+    h.state_mut().ui.tool = crate::state::Tool::Brush;
+    crate::canvas::tool_event(h.state_mut(), crate::canvas::ToolEvent::Down { x: 180.0, y: 150.0, pressure: 1.0 }, Modifiers::NONE);
+    crate::canvas::tool_event(h.state_mut(), crate::canvas::ToolEvent::Move { x: 240.0, y: 150.0, pressure: 1.0 }, Modifiers::NONE);
+    crate::canvas::tool_event(h.state_mut(), crate::canvas::ToolEvent::Up { x: 240.0, y: 150.0 }, Modifiers::NONE);
+    let ctx = h.ctx.clone();
+    crate::transform_tool::begin(h.state_mut(), &ctx).unwrap();
+    h.run_steps(2);
+    let before = h.state().ui.transform.clone().unwrap();
+    let revision = h.state().session.active().unwrap().revision;
+    let a = crate::canvas::ViewXform::active(h.state()).unwrap().to_screen(100.0, 100.0);
+    android_contact(&mut h, 0, Start, a, None);
+    android_contact(&mut h, 0, Move, a + vec2(5.0, 5.0), None);
+    android_contact(&mut h, 0, Move, a + vec2(40.0, 30.0), None);
+    assert_ne!(h.state().ui.transform.as_ref().unwrap().quad, before.quad);
+    android_contact(&mut h, 1, Start, a + vec2(160.0, 0.0), None);
+    assert_eq!(h.state().ui.transform.as_ref().unwrap().quad, before.quad);
+    android_contact(&mut h, 1, End, a + vec2(160.0, 0.0), None);
+    android_contact(&mut h, 0, End, a + vec2(40.0, 30.0), None);
+    assert_eq!(h.state().session.active().unwrap().revision, revision);
+    assert!(h.state().ui.transform.is_some());
+}
+
+#[test]
+fn android_gesture_takeover_clears_frame_and_artboard_previews() {
+    use egui::TouchPhase::{End, Move, Start};
+    for tool in [crate::state::Tool::Frame, crate::state::Tool::Artboard] {
+        let mut h = harness();
+        h.state_mut().ui.tool = tool;
+        let a = h.state().last_canvas_rect.center();
+        let revision = h.state().session.active().unwrap().revision;
+        android_contact(&mut h, 0, Start, a, None);
+        android_contact(&mut h, 0, Move, a + vec2(60.0, 40.0), None);
+        assert!(h.state().ui.frame_tool.drag.is_some() || h.state().ui.artboard_tool.drag.is_some());
+        android_contact(&mut h, 1, Start, a + vec2(140.0, 0.0), None);
+        assert!(h.state().ui.frame_tool.drag.is_none());
+        assert!(h.state().ui.artboard_tool.drag.is_none());
+        android_contact(&mut h, 1, End, a + vec2(140.0, 0.0), None);
+        android_contact(&mut h, 0, End, a + vec2(60.0, 40.0), None);
+        assert_eq!(h.state().session.active().unwrap().revision, revision);
+    }
+}

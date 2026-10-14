@@ -77,6 +77,13 @@ pub struct LiveGradient {
     preview: Option<(u64, Arc<Document>)>,
 }
 
+/// Drop a canvas drag and its uncommitted preview when touch navigation takes over.
+pub(crate) fn cancel_pointer(app: &mut PhotocraftApp) {
+    if app.gradient.drag.take().is_some() {
+        app.gradient.preview = None;
+    }
+}
+
 /// Whether the Gradient tool is in its live (Gradient Fill layer) mode.
 /// Painting into a layer mask, an alpha channel or the Quick Mask stays classic (pixels), except
 /// that a selected gradient fill layer is always edited live (selecting it targets its mask).

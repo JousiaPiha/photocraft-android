@@ -2707,3 +2707,16 @@ curves	Smooth	平滑
 	Step {step} is waiting for its dialog	步驟 {step} 正在等待其對話框
 @plural	{n} action|{n} actions	{n} 個動作
 	Auto Add/Delete	自動增加/刪除
+
+	Paint with finger	用手指繪畫
+
+# Painting mode
+	Editor	編輯器
+	Return to editor	返回編輯器
+	Right-hand sidebar	右側邊欄
+	Painting Mode	繪畫模式
+	Paint	繪畫
+	Brush Size	筆刷大小
+	Strength	強度
+	Lock brush order	鎖定筆刷順序
+	Unlock brush order	解鎖筆刷順序

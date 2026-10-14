@@ -2722,3 +2722,16 @@ curves	Smooth	平滑
 	Step {step} is waiting for its dialog	步骤 {step} 正在等待其对话框
 @plural	{n} action|{n} actions	{n} 个动作
 	Auto Add/Delete	自动添加/删除
+
+	Paint with finger	用手指绘画
+
+# Painting mode
+	Editor	编辑器
+	Return to editor	返回编辑器
+	Right-hand sidebar	右侧边栏
+	Painting Mode	绘画模式
+	Paint	绘画
+	Brush Size	画笔大小
+	Strength	强度
+	Lock brush order	锁定画笔顺序
+	Unlock brush order	解锁画笔顺序

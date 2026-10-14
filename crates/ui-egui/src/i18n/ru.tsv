@@ -3062,3 +3062,15 @@ curves	Smooth	Сгладить
 	Step {step} is waiting for its dialog	Шаг {step} ожидает своего диалога
 @plural	{n} action|{n} actions	{n} операция|{n} операции|{n} операций
 	Auto Add/Delete	Автодобавление/удаление
+
+	Paint with finger	Рисование пальцем
+
+# Painting mode
+	Editor	Редактор
+	Return to editor	Вернуться в редактор
+	Right-hand sidebar	Боковая панель справа
+	Painting Mode	Режим рисования
+	Paint	Рисовать
+	Strength	Интенсивность
+	Lock brush order	Заблокировать порядок кистей
+	Unlock brush order	Разблокировать порядок кистей

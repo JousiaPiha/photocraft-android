@@ -21,6 +21,7 @@ pub const TOP_MENUS: [&str; 10] = ["File", "Edit", "Image", "Layer", "Type", "Se
 
 /// UI-level commands (handled by the shell rather than the engine): id, label, menu, shortcut.
 pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
+    ("window.paintingMode", "Painting Mode", &["Window"], None),
     ("ui.symmetryTransform", "Transform Symmetry", &[], None),
     // Right-click the options bar's tool icon (#2825); `tool.resetAll` asks first.
     ("tool.reset", "Reset Tool", &[], None),
@@ -163,6 +164,11 @@ pub fn invoke(app: &mut PhotocraftApp, ctx: &egui::Context, id: &str, params: Va
 
 /// [`invoke`] without the unsaved-changes prompt, for once the user has already answered it.
 pub(crate) fn invoke_unguarded(app: &mut PhotocraftApp, ctx: &egui::Context, id: &str, params: Value) -> Result<Value, String> {
+    if id == crate::painting_mode::COMMAND {
+        let result = crate::painting_mode::command(app, params);
+        crate::painting_mode::sync_screen_mode(app, ctx);
+        return result;
+    }
     if let Some(tool) = crate::tool_shortcuts::tool(id) {
         app.ui.tool = tool;
         return Ok(json!({"tool": tool}));
@@ -668,6 +674,9 @@ fn open_path(app: &mut PhotocraftApp, path: &str) -> Result<Value, String> {
 }
 
 pub fn is_enabled(app: &PhotocraftApp, id: &str) -> bool {
+    if id == crate::painting_mode::COMMAND {
+        return true;
+    }
     if crate::tool_shortcuts::tool(id).is_some() {
         return true;
     }
@@ -770,6 +779,9 @@ const MODE_CHECKS: [&str; 11] = ["rgb", "grayscale", "cmyk", "lab", "multichanne
 
 /// Is a UI-level panel toggle currently on (for checkmarks)?
 fn checked(app: &PhotocraftApp, id: &str) -> Option<bool> {
+    if id == crate::painting_mode::COMMAND {
+        return Some(app.ui.painting.enabled);
+    }
     if let Some(checked) = crate::panel_docking::checked(app, id) {
         return Some(checked);
     }
@@ -1479,6 +1491,11 @@ pub fn alt_click(id: String, alt: bool) -> String {
 
 /// Workspace presets (Window → Workspace): which panels are visible.
 pub fn apply_workspace(app: &mut PhotocraftApp) {
+    crate::painting_mode::set_enabled(app, app.ui.workspace == "Painting");
+    if app.ui.painting.enabled {
+        app.ui.tool = crate::state::Tool::Brush;
+        crate::paint_mouse::sync_tool_brush(app);
+    }
     // Saved workspaces (Window › Workspace › New Workspace…) restore their own layout.
     if crate::workspace_ui::apply_custom(app) {
         return;

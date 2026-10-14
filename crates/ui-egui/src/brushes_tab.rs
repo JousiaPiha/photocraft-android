@@ -1,17 +1,10 @@
 //! Window › Brushes: the brush presets in collapsible groups, as a list (tip, size, stroke
 //! preview, name) or a grid of tips, with a size slider and a search field.
 //!
-//! Presets and groups are organised like Photoshop's panel: drag a preset within its group or
-//! into another group or folder (onto a preset, or onto a header to append), drag a group's or
-//! folder's header onto another header to put it inside that folder (or onto the header's upper
-//! edge to place it before, which reorders siblings and moves a folder out to the top level), and
-//! right-click for Rename and Delete. Groups hold nested folders ([`BrushPreset::folder`],
-//! e.g. an imported `.abr` file's own folders), drawn indented under their group and opened or
-//! closed like groups. Every change is a `brush.presets.*` command, so it is journaled, drivable,
-//! and persisted by the preset store.
-//!
-//! The list itself ([`preset_list`]) is shared with the Brush Preset picker (`brush_picker`), so
-//! both show, pick and organise presets the same way; each keeps its own view state.
+//! Brush order is locked by default: dragging scrolls and a tap selects. The lock beside
+//! Search Brushes explicitly enables drag organization of presets and nested folders.
+//! The shared list is used by the Brushes tab, Brush Preset picker and Painting Mode;
+//! organizing still dispatches the existing journaled `brush.presets.*` commands.
 
 use egui::{Color32, RichText, Sense, Stroke, pos2, vec2};
 use photocraft_engine::paint::{BrushPreset, MAX_BRUSH_SIZE};
@@ -293,20 +286,32 @@ fn second_half(ui: &egui::Ui, r: egui::Rect, grid: bool) -> bool {
 }
 
 /// Drag, drop and context menu of one preset cell or row.
-fn preset_interactions(ui: &egui::Ui, resp: &egui::Response, r: egui::Rect, p: &BrushPreset, presets: &[BrushPreset], grid: bool, acts: &mut Vec<Action>) {
-    let t = Tokens::get(ui.ctx());
-    resp.dnd_set_drag_payload(BrushDrag::Preset(p.name.clone()));
-    if let Some(d) = resp.dnd_hover_payload::<BrushDrag>()
-        && matches!(&*d, BrushDrag::Preset(n) if *n != p.name)
-    {
-        widgets::drop_line(ui, r, second_half(ui, r, grid), grid, &t);
-    }
-    if let Some(d) = resp.dnd_release_payload::<BrushDrag>()
-        && let BrushDrag::Preset(n) = &*d
-        && *n != p.name
-        && let Some((group, folder, index)) = drop_target(presets, n, &p.name, second_half(ui, r, grid))
-    {
-        acts.push(Action::Move { name: n.clone(), group, folder: Some(folder), index: Some(index) });
+#[allow(clippy::too_many_arguments)]
+fn preset_interactions(
+    ui: &egui::Ui,
+    resp: &egui::Response,
+    r: egui::Rect,
+    p: &BrushPreset,
+    presets: &[BrushPreset],
+    grid: bool,
+    reorder: bool,
+    acts: &mut Vec<Action>,
+) {
+    if reorder {
+        let t = Tokens::get(ui.ctx());
+        resp.dnd_set_drag_payload(BrushDrag::Preset(p.name.clone()));
+        if let Some(d) = resp.dnd_hover_payload::<BrushDrag>()
+            && matches!(&*d, BrushDrag::Preset(n) if *n != p.name)
+        {
+            widgets::drop_line(ui, r, second_half(ui, r, grid), grid, &t);
+        }
+        if let Some(d) = resp.dnd_release_payload::<BrushDrag>()
+            && let BrushDrag::Preset(n) = &*d
+            && *n != p.name
+            && let Some((group, folder, index)) = drop_target(presets, n, &p.name, second_half(ui, r, grid))
+        {
+            acts.push(Action::Move { name: n.clone(), group, folder: Some(folder), index: Some(index) });
+        }
     }
     if resp.double_clicked() {
         acts.push(Action::Choose(p.name.clone()));
@@ -328,9 +333,9 @@ fn preset_interactions(ui: &egui::Ui, resp: &egui::Response, r: egui::Rect, p: &
 /// Width a list row keeps for the gaps around its stroke preview and the preset name.
 const STROKE_NAME_ROOM: f32 = 140.0;
 
-fn list_row(ui: &mut egui::Ui, p: &BrushPreset, current: bool, presets: &[BrushPreset], indent: f32, acts: &mut Vec<Action>) {
+fn list_row(ui: &mut egui::Ui, p: &BrushPreset, current: bool, presets: &[BrushPreset], indent: f32, reorder: bool, acts: &mut Vec<Action>) {
     let t = Tokens::get(ui.ctx());
-    let (full, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 44.0), Sense::click_and_drag());
+    let (full, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 44.0), if reorder { Sense::click_and_drag() } else { Sense::click() });
     // Rows inside nested folders are indented; the whole width stays the drop target.
     let r = egui::Rect::from_min_max(full.min + vec2(indent.min(full.width() / 2.0), 0.0), full.max);
     resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, current, &p.name));
@@ -361,7 +366,7 @@ fn list_row(ui: &mut egui::Ui, p: &BrushPreset, current: bool, presets: &[BrushP
     let sr = egui::Rect::from_min_size(pos2(cell.right() + 8.0, r.top() + 4.0), vec2(w, 36.0));
     ui.painter().image(stroke.id(), sr, full_uv(), Color32::WHITE);
     crate::layer_row_ui::label(ui.painter(), sr.right() + 12.0, r.center().y, r.right() - 4.0, &p.name, egui::FontId::proportional(12.0), t.text_dim);
-    preset_interactions(ui, &resp, r, p, presets, false, acts);
+    preset_interactions(ui, &resp, r, p, presets, false, reorder, acts);
 }
 
 /// The gap between grid cells, across and down.
@@ -384,9 +389,9 @@ pub(crate) fn grid_columns(width: f32, cell: f32, indent: f32, gap: f32) -> (f32
     (if left.is_finite() { left } else { 0.0 }, cols)
 }
 
-fn grid_cell(ui: &mut egui::Ui, p: &BrushPreset, current: bool, presets: &[BrushPreset], cell: f32, acts: &mut Vec<Action>) {
+fn grid_cell(ui: &mut egui::Ui, p: &BrushPreset, current: bool, presets: &[BrushPreset], cell: f32, reorder: bool, acts: &mut Vec<Action>) {
     let t = Tokens::get(ui.ctx());
-    let (r, resp) = ui.allocate_exact_size(vec2(cell, cell + 6.0), Sense::click_and_drag());
+    let (r, resp) = ui.allocate_exact_size(vec2(cell, cell + 6.0), if reorder { Sense::click_and_drag() } else { Sense::click() });
     resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, current, &p.name));
     if !ui.is_rect_visible(r) {
         return;
@@ -410,7 +415,7 @@ fn grid_cell(ui: &mut egui::Ui, p: &BrushPreset, current: bool, presets: &[Brush
         t.text_dim,
     );
     let resp = resp.on_hover_text(&p.name);
-    preset_interactions(ui, &resp, r, p, presets, true, acts);
+    preset_interactions(ui, &resp, r, p, presets, true, reorder, acts);
 }
 
 /// Padding, tip cell width and name row height, at scale 1; the footer slider multiplies them
@@ -493,6 +498,7 @@ fn preset_card(
     show: (bool, bool, bool),
     width: f32,
     scale: f32,
+    reorder: bool,
     acts: &mut Vec<Action>,
 ) {
     let (show_name, show_stroke, show_tip) = show;
@@ -518,7 +524,7 @@ fn preset_card(
     } else {
         0.0
     };
-    let (full, resp) = ui.allocate_exact_size(vec2(width, pad_y * 2.0 + top_h + name_h), Sense::click_and_drag());
+    let (full, resp) = ui.allocate_exact_size(vec2(width, pad_y * 2.0 + top_h + name_h), if reorder { Sense::click_and_drag() } else { Sense::click() });
     resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, current, &p.name));
     if !ui.is_rect_visible(full) {
         return;
@@ -598,7 +604,7 @@ fn preset_card(
     let resp = resp.on_hover_text(&p.name);
     // A tip-only card's grid drops between columns, like the Brushes tab's: the rest drop between
     // rows (there is a row under the tip there).
-    preset_interactions(ui, &resp, card, p, presets, tip_only, acts);
+    preset_interactions(ui, &resp, card, p, presets, tip_only, reorder, acts);
 }
 
 /// Indent of one nested folder level.
@@ -640,9 +646,10 @@ pub fn folder_drop(src_group: &str, src_folder: &[String], group: &str, folder: 
 /// folder dragged here lands before it (its upper edge) or goes into it ([`folder_drop`]); a
 /// preset dropped here moves to the end of the group or folder. `key` is the group key, `folder` the nested folder's path (empty for the
 /// group), `label` the group's panel label.
-fn group_header(ui: &mut egui::Ui, label: &str, key: &str, folder: &[String], open: bool, count: usize, acts: &mut Vec<Action>) {
+#[allow(clippy::too_many_arguments)]
+fn group_header(ui: &mut egui::Ui, label: &str, key: &str, folder: &[String], open: bool, count: usize, reorder: bool, acts: &mut Vec<Action>) {
     let t = Tokens::get(ui.ctx());
-    let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 24.0), Sense::click_and_drag());
+    let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 24.0), if reorder { Sense::click_and_drag() } else { Sense::click() });
     if resp.hovered() {
         ui.painter().rect_filled(r, t.radius_sm, t.hover);
     }
@@ -666,31 +673,33 @@ fn group_header(ui: &mut egui::Ui, label: &str, key: &str, folder: &[String], op
     ui.painter().text(pos2(x + 40.0, r.center().y), egui::Align2::LEFT_CENTER, shown, font, t.text);
     ui.painter().text(pos2(r.right() - 8.0, r.center().y), egui::Align2::RIGHT_CENTER, count.to_string(), theme::medium(11.0), t.text_faint);
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::CollapsingHeader, true, shown));
-    let me = match folder {
-        [] => BrushDrag::Group(key.to_string()),
-        f => BrushDrag::Folder { group: key.to_string(), folder: f.to_vec() },
-    };
-    resp.dnd_set_drag_payload(me);
-    // The upper third of the header places a dragged folder before this one; the rest drops it in.
-    let edge = ui.ctx().pointer_interact_pos().is_some_and(|p| p.y < r.top() + r.height() / 3.0);
-    let folder_action = |d: &BrushDrag| match d {
-        BrushDrag::Group(g) => folder_drop(g, &[], key, folder, edge),
-        BrushDrag::Folder { group, folder: f } => folder_drop(group, f, key, folder, edge),
-        BrushDrag::Preset(_) => None,
-    };
-    if let Some(d) = resp.dnd_hover_payload::<BrushDrag>() {
-        match (&*d, folder_action(&d)) {
-            (BrushDrag::Preset(_), _) | (_, Some(Action::MoveInto { before: None, .. })) => {
-                ui.painter().rect_stroke(r, t.radius_sm, Stroke::new(1.5, t.accent), egui::StrokeKind::Inside);
+    if reorder {
+        let me = match folder {
+            [] => BrushDrag::Group(key.to_string()),
+            f => BrushDrag::Folder { group: key.to_string(), folder: f.to_vec() },
+        };
+        resp.dnd_set_drag_payload(me);
+        // The upper third of the header places a dragged folder before this one; the rest drops it in.
+        let edge = ui.ctx().pointer_interact_pos().is_some_and(|p| p.y < r.top() + r.height() / 3.0);
+        let folder_action = |d: &BrushDrag| match d {
+            BrushDrag::Group(g) => folder_drop(g, &[], key, folder, edge),
+            BrushDrag::Folder { group, folder: f } => folder_drop(group, f, key, folder, edge),
+            BrushDrag::Preset(_) => None,
+        };
+        if let Some(d) = resp.dnd_hover_payload::<BrushDrag>() {
+            match (&*d, folder_action(&d)) {
+                (BrushDrag::Preset(_), _) | (_, Some(Action::MoveInto { before: None, .. })) => {
+                    ui.painter().rect_stroke(r, t.radius_sm, Stroke::new(1.5, t.accent), egui::StrokeKind::Inside);
+                }
+                (_, Some(_)) => widgets::drop_line(ui, r, false, false, &t),
+                _ => {}
             }
-            (_, Some(_)) => widgets::drop_line(ui, r, false, false, &t),
-            _ => {}
         }
-    }
-    if let Some(d) = resp.dnd_release_payload::<BrushDrag>() {
-        match &*d {
-            BrushDrag::Preset(n) => acts.push(Action::Move { name: n.clone(), group: key.to_string(), folder: Some(folder.to_vec()), index: None }),
-            other => acts.extend(folder_action(other)),
+        if let Some(d) = resp.dnd_release_payload::<BrushDrag>() {
+            match &*d {
+                BrushDrag::Preset(n) => acts.push(Action::Move { name: n.clone(), group: key.to_string(), folder: Some(folder.to_vec()), index: None }),
+                other => acts.extend(folder_action(other)),
+            }
         }
     }
     if resp.clicked() {
@@ -718,6 +727,7 @@ struct Draw<'a> {
     collapsed: &'a [String],
     filtering: bool,
     grid: bool,
+    reorder: bool,
     layout: ListLayout,
     /// The picker cards' parts — name, stroke, tip — from the gear's boxes.
     show: (bool, bool, bool),
@@ -765,7 +775,7 @@ fn draw_nodes(ui: &mut egui::Ui, d: &Draw, nodes: &[Node], depth: usize, acts: &
                         ui.horizontal(|ui| {
                             ui.add_space(left);
                             for p in row {
-                                preset_card(ui, p, d.current.is_some_and(|n| p.name.eq_ignore_ascii_case(n)), d.presets, d.show, cell, scale, acts);
+                                preset_card(ui, p, d.current.is_some_and(|n| p.name.eq_ignore_ascii_case(n)), d.presets, d.show, cell, scale, d.reorder, acts);
                             }
                         });
                     }
@@ -775,7 +785,17 @@ fn draw_nodes(ui: &mut egui::Ui, d: &Draw, nodes: &[Node], depth: usize, acts: &
                         ui.horizontal(|ui| {
                             ui.add_space(indent);
                             for p in row {
-                                preset_card(ui, p, d.current.is_some_and(|n| p.name.eq_ignore_ascii_case(n)), d.presets, d.show, card_w, scale, acts);
+                                preset_card(
+                                    ui,
+                                    p,
+                                    d.current.is_some_and(|n| p.name.eq_ignore_ascii_case(n)),
+                                    d.presets,
+                                    d.show,
+                                    card_w,
+                                    scale,
+                                    d.reorder,
+                                    acts,
+                                );
                             }
                         });
                     }
@@ -791,14 +811,14 @@ fn draw_nodes(ui: &mut egui::Ui, d: &Draw, nodes: &[Node], depth: usize, acts: &
                     ui.horizontal(|ui| {
                         ui.add_space(left);
                         for p in row {
-                            grid_cell(ui, p, d.current.is_some_and(|n| p.name.eq_ignore_ascii_case(n)), d.presets, d.layout.cell, acts);
+                            grid_cell(ui, p, d.current.is_some_and(|n| p.name.eq_ignore_ascii_case(n)), d.presets, d.layout.cell, d.reorder, acts);
                         }
                     });
                 }
             });
         } else {
             for p in run.iter() {
-                list_row(ui, p, d.current.is_some_and(|n| p.name.eq_ignore_ascii_case(n)), d.presets, indent, acts);
+                list_row(ui, p, d.current.is_some_and(|n| p.name.eq_ignore_ascii_case(n)), d.presets, indent, d.reorder, acts);
             }
         }
         run.clear();
@@ -809,7 +829,7 @@ fn draw_nodes(ui: &mut egui::Ui, d: &Draw, nodes: &[Node], depth: usize, acts: &
             Node::Folder(f) => {
                 flush(ui, &mut run, acts);
                 let open = d.filtering || !d.collapsed.contains(&folder_view_key(d.label, &f.path));
-                group_header(ui, d.label, d.key, &f.path, open, f.count, acts);
+                group_header(ui, d.label, d.key, &f.path, open, f.count, d.reorder, acts);
                 if open && depth < MAX_VIEW_DEPTH {
                     draw_nodes(ui, d, &f.children, depth + 1, acts);
                 }
@@ -868,30 +888,48 @@ pub fn preset_list(ui: &mut egui::Ui, presets: &[BrushPreset], current: Option<&
     let grid = st.view == BrushesView::Grid;
     let show = (st.show_name, st.show_stroke, st.show_tip);
     let collapsed = &st.collapsed;
-    egui::ScrollArea::vertical().id_salt(layout.id).max_height(layout.max_height).auto_shrink([false, true]).show(ui, |ui| {
-        ui.spacing_mut().item_spacing.y = 1.0;
-        for (label, items) in grouped_presets(presets) {
-            let items: Vec<&BrushPreset> =
-                items.into_iter().filter_map(|i| presets.get(i)).filter(|p| filter.is_empty() || p.name.to_lowercase().contains(&filter)).collect();
-            if items.is_empty() {
-                continue;
+    egui::ScrollArea::vertical()
+        .id_salt(layout.id)
+        .scroll_source(egui::scroll_area::ScrollSource::ALL)
+        .max_height(layout.max_height)
+        .auto_shrink([false, true])
+        .show(ui, |ui| {
+            ui.spacing_mut().item_spacing.y = 1.0;
+            for (label, items) in grouped_presets(presets) {
+                let items: Vec<&BrushPreset> =
+                    items.into_iter().filter_map(|i| presets.get(i)).filter(|p| filter.is_empty() || p.name.to_lowercase().contains(&filter)).collect();
+                if items.is_empty() {
+                    continue;
+                }
+                let key = group_key(presets, &label);
+                let open = !filter.is_empty() || !collapsed.contains(&label);
+                group_header(ui, &label, &key, &[], open, items.len(), st.reorder, &mut acts);
+                if !open {
+                    continue;
+                }
+                let d = Draw {
+                    label: &label,
+                    key: &key,
+                    presets,
+                    current,
+                    collapsed,
+                    filtering: !filter.is_empty(),
+                    grid,
+                    reorder: st.reorder,
+                    layout,
+                    show,
+                    scale: st.scale,
+                };
+                draw_nodes(ui, &d, &folder_tree(&items), 0, &mut acts);
+                ui.add_space(2.0);
             }
-            let key = group_key(presets, &label);
-            let open = !filter.is_empty() || !collapsed.contains(&label);
-            group_header(ui, &label, &key, &[], open, items.len(), &mut acts);
-            if !open {
-                continue;
+            if presets.is_empty() {
+                ui.label(RichText::new(tl!("No brush presets")).color(Tokens::get(ui.ctx()).text_faint));
             }
-            let d = Draw { label: &label, key: &key, presets, current, collapsed, filtering: !filter.is_empty(), grid, layout, show, scale: st.scale };
-            draw_nodes(ui, &d, &folder_tree(&items), 0, &mut acts);
-            ui.add_space(2.0);
-        }
-        if presets.is_empty() {
-            ui.label(RichText::new(tl!("No brush presets")).color(Tokens::get(ui.ctx()).text_faint));
-        }
-    });
+        });
     // The dragged preset or group follows the pointer.
-    if let Some(d) = egui::DragAndDrop::payload::<BrushDrag>(ui.ctx())
+    if st.reorder
+        && let Some(d) = egui::DragAndDrop::payload::<BrushDrag>(ui.ctx())
         && let Some(p) = ui.ctx().pointer_interact_pos()
     {
         ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
@@ -914,6 +952,14 @@ pub fn preset_list(ui: &mut egui::Ui, presets: &[BrushPreset], current: Option<&
         );
     }
     view_actions(st, acts)
+}
+
+/// Lock keeps ordinary pen/finger drags scrolling; unlock opts into rearranging the library.
+pub fn order_button(ui: &mut egui::Ui, st: &mut BrushesPanelState, size: f32) {
+    let label = if st.reorder { tl!("Lock brush order") } else { tl!("Unlock brush order") };
+    if icons::button(ui, if st.reorder { "lock-open" } else { "lock" }, size, st.reorder, label).clicked() {
+        st.reorder = !st.reorder;
+    }
 }
 
 /// The Brushes tab.
@@ -942,8 +988,9 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
         icons::paint(ui, egui::Rect::from_min_size(ui.cursor().min + vec2(0.0, 3.0), vec2(16.0, 16.0)), "search", 14.0, t.text_faint);
         ui.add_space(20.0);
-        widgets::text_field(ui, ui.id().with("brush-search"), &mut app.ui.brushes_panel.filter, tl!("Search Brushes"), WIDTH - 120.0, false);
+        widgets::text_field(ui, ui.id().with("brush-search"), &mut app.ui.brushes_panel.filter, tl!("Search Brushes"), WIDTH - 152.0, false);
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            order_button(ui, &mut app.ui.brushes_panel, 24.0);
             let view = &mut app.ui.brushes_panel.view;
             let grid_tip = "Grid view";
             let list_tip = "List view";

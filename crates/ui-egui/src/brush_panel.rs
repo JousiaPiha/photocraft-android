@@ -90,6 +90,8 @@ pub struct BrushesPanelState {
     /// Case-insensitive name filter.
     pub filter: String,
     pub view: BrushesView,
+    /// Explicit opt-in to drag organization. Locked lists scroll on drag.
+    pub reorder: bool,
     pub renaming: Option<Renaming>,
     /// The Brush Preset picker's cards: show the preset's name. At least one of the three parts
     /// is always on, and the picker's cards never go empty (see [`crate::brush_picker`]).
@@ -112,6 +114,7 @@ impl Default for BrushesPanelState {
             collapsed: Vec::new(),
             filter: String::new(),
             view: BrushesView::default(),
+            reorder: false,
             renaming: None,
             show_name: true,
             show_stroke: true,

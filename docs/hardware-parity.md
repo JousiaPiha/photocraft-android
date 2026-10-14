@@ -1,6 +1,6 @@
 # Hardware parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-10 · **Change:** major (first version: GPU, pen tablets, displays, gestures per platform against Photoshop 2026) · **Target:** Adobe Photoshop 2026
+> **Last reviewed:** 2026-10-13 · **Last updated:** 2026-10-13 · **Change:** minor (native DeX window controls and tablet fullscreen) · **Target:** Adobe Photoshop 2026
 
 Each hardware feature Photoshop 2026 (27.11.0) uses, per platform, against PhotoCraft. Photoshop
 side: its bundle (Metal and OpenCL paths, "Precise Color Management for HDR Display" and EDR
@@ -44,6 +44,7 @@ HDR display to verify.
 | HDR / EDR output for 32-bit and HDR images | yes ("Precise Color Management for HDR Display") | no; 8-bit sRGB-encoded canvas texture | missing |
 | High-DPI, physical 100% | yes | yes (#1943) | done |
 | Multiple monitors: documents in separate OS windows | yes | yes (`extra_windows`) | done |
+| Android desktop window controls | desktop window management | Native DeX caption, minimize/maximize/restore/resize; immersive outside desk mode; Tab S6/API 32 verified (`docs/android.md`) | partial (other devices untested) |
 | Panels in separate OS windows | yes | in-app floating only (UI-217-5) | missing |
 
 ## Input devices
@@ -53,6 +54,7 @@ HDR display to verify.
 | Trackpad pinch zoom, two-finger pan | yes | yes; pinch scrolls instead in 0.6.0 (#2463) | partial |
 | Trackpad rotate (Rotate View) | yes | yes (`rotate_view.rs`) | done |
 | Touch Bar | yes (Intel Macs) | no | missing (low value) |
+| Touch screens (Android) | tablet gestures | Finger painting toggle; two-finger pan/zoom/rotate; finger double-tap resets rotation and fits the canvas when finger painting is off; native pen/finger distinction (`touch_nav.rs`, pinned winit patch). Full physical pen/palm validation pending | partial |
 | Touch screens (Windows) | yes | basic pointer only | partial |
 | 3D mouse, MIDI, Surface Dial | Surface Dial on Windows | no | missing (low value) |
 | Scanners (WIA / TWAIN) | WIA menu (Windows) | menu item live; no driver integration | partial |
@@ -62,3 +64,6 @@ HDR display to verify.
 | Date | Change | Summary |
 |---|---|---|
 | 2026-10-10 | major | First version |
+| 2026-10-13 | minor | Android finger painting preference and two-finger canvas navigation; aggregate estimate unchanged |
+| 2026-10-13 | minor | Finger double-tap Reset View + Fit on Screen with finger painting disabled; aggregate estimate unchanged |
+| 2026-10-13 | minor | Native DeX window controls; separate content surface preserves system captions; aggregate estimate unchanged |

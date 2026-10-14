@@ -260,9 +260,10 @@ pub fn body(
     ui.horizontal(|ui| {
         icons::paint(ui, egui::Rect::from_min_size(ui.cursor().min + vec2(0.0, 3.0), vec2(16.0, 16.0)), "search", 14.0, t.text_faint);
         ui.add_space(20.0);
-        widgets::text_field(ui, ui.id().with("brush-picker-search"), &mut st.filter, tl!("Search Brushes"), (size.x - 118.0).max(60.0), false);
+        widgets::text_field(ui, ui.id().with("brush-picker-search"), &mut st.filter, tl!("Search Brushes"), (size.x - 150.0).max(60.0), false);
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             gear_menu(ui, current, presets, st, &mut picks);
+            brushes_tab::order_button(ui, st, 24.0);
             let new_tip = "Create new brush preset from the current settings";
             let settings_tip = "Brush Settings…  (F5): every option of this brush";
             if named(icons::button(ui, "square-plus", 24.0, false, tl!(new_tip)), "New Brush Preset").clicked() {
